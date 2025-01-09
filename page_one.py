@@ -38,7 +38,7 @@ def page_one():
         results3_df = None
         results4_df = None
         
-        if "图表" in file_name.lower():
+        if "各资源类型" in file_name.lower():
             results2_df = process_daily_resource_file(file,start_date, end_date)
         elif "中转" in file_name.lower():
             results1_df = process_transfer_file(file,start_date, end_date)
@@ -183,6 +183,8 @@ def page_one():
             
         df = df[df['派驻组名称'] != '四川区派驻组']
 
+        df = df[df['GRD账单总成本'] != 0]
+
         # 数据清洗：删除中转重量大于100的数据
         df = df[df['中转重量'] <= 100]
 
@@ -209,8 +211,8 @@ def page_one():
             total_ton_km = group_df['总吨公里'].sum()
             total_line_km = group_df['线路里程'].sum()
             
-            total_small_grd_cost = group_df.loc[(group_df['备份字段s11'] == '小件') & (group_df['运输等级（修正）'].isin(['一级运输', '二级运输'])), 'GRD账单总成本'].sum()
-            total_grd_trunk_big_cost = group_df.loc[(group_df['备份字段s11'] == '大件') & (group_df['运输等级（修正）'].isin(['一级运输', '二级运输'])), 'GRD账单总成本'].sum()
+            total_small_grd_cost = group_df.loc[(group_df['地区类型_大小件'] == '小件') & (group_df['运输等级（修正）'].isin(['一级运输', '二级运输'])), 'GRD账单总成本'].sum()
+            total_grd_trunk_big_cost = group_df.loc[(group_df['地区类型_大小件'] == '大件') & (group_df['运输等级（修正）'].isin(['一级运输', '二级运输'])), 'GRD账单总成本'].sum()
             
             temporary_vehicle_average = group_df[group_df['交易渠道类型']=='临时交易']['任务数'].sum() / unique_days
             
@@ -293,8 +295,8 @@ def page_one():
             total_ton_km = region_df['总吨公里'].sum()
             total_line_km = region_df['线路里程'].sum()
 
-            total_grd_small_cost = region_df[region_df['备份字段s11'] == '小件']['GRD账单总成本'].sum()
-            total_grd_big_cost = region_df[(region_df['备份字段s11'] == '大件') & (region_df['运输等级（修正）'].isin(['一级运输', '二级运输']))]['GRD账单总成本'].sum()
+            total_grd_small_cost = region_df[region_df['地区类型_大小件'] == '小件']['GRD账单总成本'].sum()
+            total_grd_big_cost = region_df[(region_df['地区类型_大小件'] == '大件') & (region_df['运输等级（修正）'].isin(['一级运输', '二级运输']))]['GRD账单总成本'].sum()
 
             ton_km_cost = total_grd_cost / total_ton_km if total_ton_km > 0 else None
             kg_cost = total_grd_cost / (weight * 1000) if weight > 0 else None
