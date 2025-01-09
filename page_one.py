@@ -191,6 +191,8 @@ def page_one():
 
         df = df[(df['计划发车日期'] >= pd.to_datetime(start_date)) & (df['计划发车日期'] <= pd.to_datetime(end_date))]
 
+        df = df[df['运输等级（修正）'].isin(['一级运输', '二级运输'])]
+
 
         def calculate_costs(group_name, group_df, fixed_unique_days=None):
             """
@@ -240,6 +242,11 @@ def page_one():
             '大件干线总成本': all_grd_trunk_big_cost,
             '临时车日均交易次数': all_temporary_vehicle_average
         })
+
+
+        '''for start_point, group in region_df.groupby('始发网点'):
+            trunk_small_each_cost, trunk_big_each_cost, temporary_vehicle_average, avg_tickets_per_day, avg_weight_per_day, avg_tasks_per_day, ton_km_cost, kg_cost, km_cost = point_calculate_costs(start_point, group)'''
+            
 
         # 按周分组数据，每周开始时间为星期五
         weekly_grouped = region_df.groupby(pd.Grouper(key='计划发车日期', freq='W-FRI', label='left', closed='left'))
