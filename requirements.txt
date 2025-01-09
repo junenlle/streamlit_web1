@@ -1,0 +1,4 @@
+matplotlib==3.5.1
+streamlit==1.12.0
+openpyxl==3.0.10
+# 其他依赖项
