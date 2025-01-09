@@ -1,6 +1,11 @@
 import os
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
+
+# 设置字体为楷体
+plt.rcParams['font.sans-serif'] = ['KaiTi']  # 楷体
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号问题
 
 def get_file_list(suffix, path):
     """
@@ -25,7 +30,7 @@ def page_two():
 
     if file is not None:
         # 读取 CSV 文件
-        df = pd.read_csv(file)
+        df = pd.read_excel(file)
 
         # 将日期列转换为日期格式
         df['日期'] = pd.to_datetime(df['日期'], format='%Y%m%d')
@@ -81,7 +86,10 @@ def page_two():
             # 按始发网点统计
             stats_by_origin = filtered_df.groupby('任务网点').agg({'计划需求ID': 'nunique', '应补偿': 'sum'}).rename(columns={'计划需求ID': '放空车辆数量', '应补偿': '应补偿金额'})
             
-            return stats_by_region, stats_by_origin
+            # 按天统计
+            daily_stats = filtered_df.groupby('日期').agg({'计划需求ID': 'nunique', '应补偿': 'sum'}).rename(columns={'计划需求ID': '放空车辆数量', '应补偿': '应补偿金额'})
+            
+            return stats_by_region, stats_by_origin,daily_stats
 
         # 获取数据表中最早的日期和尾部日期
         earliest_date = df['日期'].min().date()
@@ -92,10 +100,17 @@ def page_two():
 
         if date_option == "单个日期":
             selected_date = st.sidebar.date_input("选择日期", min_value=earliest_date, max_value=latest_date, value=earliest_date)
-            stats_by_region, stats_by_origin = get_region_stats(date=selected_date)
+            stats_by_region, stats_by_origin,daily_stats = get_region_stats(date=selected_date)
         else:
             selected_date_range = st.sidebar.slider("选择日期范围", min_value=earliest_date, max_value=latest_date, value=(earliest_date, latest_date))
-            stats_by_region, stats_by_origin = get_region_stats(date_range=selected_date_range)
+            stats_by_region, stats_by_origin,daily_stats = get_region_stats(date_range=selected_date_range)
+
+        # 图表设置选项
+        st.sidebar.header("图表设置")
+        font_size = st.sidebar.slider("字体大小", 8, 24, 12)
+        dpi = st.sidebar.slider("分辨率 (DPI)", 100, 600, 300)
+        line_color = st.sidebar.color_picker("折线颜色", "#1f77b4")
+        bar_color = st.sidebar.color_picker("柱状图颜色", "#d62728")
 
         # 显示结果
         st.write(f"日期筛选：{date_option}")
@@ -106,5 +121,35 @@ def page_two():
         st.write(stats_by_origin)
         st.write("-" * 40)
 
+        if date_option == "日期范围":
+            st.write(f"按天统计：")
+            st.write(daily_stats)
+
+            # 生成双 y 轴组合图
+            fig, ax1 = plt.subplots(figsize=(12, 6), dpi=dpi)
+
+            ax1.set_xlabel('日期', fontsize=font_size)
+            ax1.set_ylabel('放空车辆数量', color=line_color, fontsize=font_size)
+            line1 = ax1.plot(daily_stats.index, daily_stats['放空车辆数量'], color=line_color, label='放空车辆数量')
+            ax1.tick_params(axis='y', labelcolor=line_color, labelsize=font_size)
+
+            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+            ax2.set_ylabel('应补偿金额', color=bar_color, fontsize=font_size)  # we already handled the x-label with ax1
+            bar2 = ax2.bar(daily_stats.index, daily_stats['应补偿金额'], color=bar_color, alpha=0.6, label='应补偿金额')
+            ax2.tick_params(axis='y', labelcolor=bar_color, labelsize=font_size)
+
+            # 添加数值标签
+            for i, v in enumerate(daily_stats['放空车辆数量']):
+                ax1.text(daily_stats.index[i], v + 1, str(v), ha='center', va='bottom', color=line_color, fontsize=font_size)
+
+            for i, v in enumerate(daily_stats['应补偿金额']):
+                ax2.text(daily_stats.index[i], v / 2, str(v), ha='center', va='center', color='black', fontsize=font_size)
+
+            # 添加图例
+            fig.tight_layout()  # otherwise the right y-label is slightly clipped
+            fig.legend(loc="upper left", bbox_to_anchor=(0.1, 0.9), fontsize=font_size)
+
+            st.pyplot(fig)
+ 
     else:
         st.write("请上传文件以开始分析。")
